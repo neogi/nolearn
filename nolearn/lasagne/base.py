@@ -127,9 +127,11 @@ def grad_scale(layer, scale):
 
 
 class TrainSplit(object):
-    def __init__(self, eval_size, stratify=True):
+    def __init__(self, eval_size, stratify=True, custom_train_indices=[], custom_valid_indices=[]):
         self.eval_size = eval_size
         self.stratify = stratify
+        self.custom_train_indices = custom_train_indices
+        self.custom_valid_indices = custom_valid_indices
 
     def __call__(self, X, y, net):
         if self.eval_size:
@@ -142,8 +144,13 @@ class TrainSplit(object):
             X_train, y_train = _sldict(X, train_indices), y[train_indices]
             X_valid, y_valid = _sldict(X, valid_indices), y[valid_indices]
         else:
-            X_train, y_train = X, y
-            X_valid, y_valid = _sldict(X, slice(len(y), None)), y[len(y):]
+            if len(self.custom_train_indices) != 0 and len(self.custom_valid_indices) != 0:
+                X_train, y_train = _sldict(X, self.custom_train_indices), y[self.custom_train_indices]
+                X_valid, y_valid = _sldict(X, self.custom_valid_indices), y[self.custom_valid_indices]
+                pass
+            else:
+                X_train, y_train = X, y
+                X_valid, y_valid = _sldict(X, slice(len(y), None)), y[len(y):]
 
         return X_train, X_valid, y_train, y_valid
 
@@ -285,7 +292,7 @@ class NeuralNet(BaseEstimator):
 
         if isinstance(layers, Layer):
             layers = _list([layers])
-            
+
         self.layers = layers
         self.update = update
         self.objective = objective
